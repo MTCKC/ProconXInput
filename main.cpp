@@ -2,6 +2,7 @@
 #include <thread> // this_thread::sleep_for
 #include <chrono> // milliseconds
 
+#define NOMINMAX
 #include <Windows.h>
 #include <conio.h> // _kbhit, _getch_nolock
 #include <ViGEmUM.h>
@@ -68,7 +69,7 @@ int main(int, char*[]) {
 	
 	auto shutdownViGEm = make_scoped(vigem_shutdown);
 	
-	// Initialize HidCerberus. Comment out until EndCerberus to remove HidCerberus support.
+#ifndef NO_CERBERUS
 	Cerberus cerb;
 	try {
 		cerb.init();
@@ -76,9 +77,9 @@ int main(int, char*[]) {
 	catch (CerberusError &e) {
 		cout << "Unable to initialize Cerberus.\n";
 		cout << "Error: " << e.what() << '\n';
-		return -1;
+		cout << "Continuing, may not find the controller if it's hidden by HidGuardian.\n";
 	}
-	// EndCerberus
+#endif
 	
 	Controller c;
 	{

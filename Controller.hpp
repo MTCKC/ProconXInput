@@ -3,7 +3,11 @@
 #include <memory>
 #include <optional>
 #include <stdexcept>
+#include <chrono>
+#include <thread>
 
+#define NOMINMAX
+#include <Windows.h>
 #include <ViGEmUM.h>
 
 #include "Common.hpp"
@@ -25,7 +29,12 @@ namespace Procon {
 	class Controller {
 		VIGEM_TARGET vController;
 		std::unique_ptr<hid_device, HIDCloser> device;
-
+		uchar rumbleCounter{ 0 };
+		using clock = std::chrono::steady_clock;
+		clock::time_point lastCommand{ clock::now() };
+		uchar currentLed{ 0 };
+		uchar largeMotor{ 0 };
+		uchar smallMotor{ 0 };
 	public:
 		Controller();
 		Controller(Controller &&);
@@ -38,7 +47,8 @@ namespace Procon {
 		void pollInput();
 
 		bool connected() const;
-
+		friend bool operator==(const Controller& lhs, const Controller& rhs);
+		friend VOID CALLBACK vigemCallback(VIGEM_TARGET t, UCHAR LargeMotor, UCHAR SmallMotor, UCHAR LEDNumber);
 	private:
 		using exchangeArray = std::optional<std::array<uchar, exchangeLen>>;
 
@@ -67,25 +77,63 @@ namespace Procon {
 			return exchange(buf);
 		}
 
+
 		template<size_t len>
 		exchangeArray sendSubcommand(uchar command, uchar subcommand, std::array<uchar, len> const& data) {
-			std::array<uchar, 10 + len> buf;
-			buf.fill(0);
-			static uchar rumbleCounter = 0;
-			buf[0] = ++rumbleCounter & 0xF;
-			buf[1] = 0x00;
-			buf[2] = 0x01;
-			buf[3] = 0x40;
-			buf[4] = 0x40;
-			buf[5] = 0x00;
-			buf[6] = 0x01;
-			buf[7] = 0x40;
-			buf[8] = 0x40;
-			buf[9] = subcommand;
+			while (clock::now() < lastCommand + std::chrono::milliseconds(100)){
+				std::this_thread::yield();
+			}
+			std::array<uchar, 10 + len> buf
+			{ 
+				static_cast<uchar>(rumbleCounter++ & 0xF),
+				0x00_uc,
+				0x01_uc,
+				0x40_uc,
+				0x40_uc,
+				0x00_uc,
+				0x01_uc,
+				0x40_uc,
+				0x40_uc,
+				subcommand
+			};
 			memcpy(buf.data() + 10, data.data(), len);
+			lastCommand = clock::now();
 			return sendCommand(command, buf);
 		}
+
+
+		template<size_t len>
+		exchangeArray sendRumble(uchar largeMotor, uchar smallMotor) {
+			while (clock::now() < lastCommand + std::chrono::milliseconds(100)) {
+				std::this_thread::yield();
+			}
+			std::array<uchar, 9> buf{
+				static_cast<uchar>(rumbleCounter++ & 0xF),
+				0x80_uc,
+				0x00_uc,
+				0x40_uc,
+				0x40_uc,
+				0x80_uc,
+				0x00_uc,
+				0x40_uc,
+				0x40_uc
+			};
+			if (largeMotor != 0) {
+				buf[1] = buf[5] = 0x08;
+				buf[2] = buf[6] = largeMotor;
+			}
+			else if (smallMotor != 0) {
+				buf[1] = buf[5] = 0x10;
+				buf[2] = buf[6] = smallMotor;
+			}
+			lastCommand = clock::now();
+			return sendCommand(0x10, buf);
+		}
+
 	};
+
+	bool operator==(const Controller &lhs, const Controller &rhs);
+	VOID CALLBACK vigemCallback(VIGEM_TARGET t, UCHAR LargeMotor, UCHAR SmallMotor, UCHAR LEDNumber);
 
 	class ControllerException : public std::runtime_error {
 	public:

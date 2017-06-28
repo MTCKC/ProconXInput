@@ -1,5 +1,7 @@
+#ifndef NO_CERBERUS
 #include "Cerberus.hpp"
 
+#define NOMINMAX
 #include <Windows.h>
 #include <stdexcept>
 
@@ -10,7 +12,7 @@ namespace Procon {
 
 	using HidGuardianFunc = BOOL(WINAPI*)();
 
-	struct CerberusImpl {
+	struct Cerberus::CerberusImpl {
 		HMODULE library{ nullptr };
 		HidGuardianFunc open{ nullptr };
 		HidGuardianFunc close{ nullptr };
@@ -21,6 +23,7 @@ namespace Procon {
 	Cerberus::~Cerberus() {
 		if (impl->close != nullptr) {
 			impl->close();
+			impl->close = nullptr;
 		}
 		if (impl->library != nullptr) {
 			FreeLibrary(impl->library);
@@ -28,7 +31,7 @@ namespace Procon {
 		}
 	}
 
-	// Move ctor and operator= defaulted here to allow pimpl to work with shared_ptr
+	// Move ctor and operator= defaulted here to allow pimpl to work with shared_ptr, don't use '= default;' in header
 	Cerberus::Cerberus(Cerberus &&) = default;
 	Cerberus& Cerberus::operator=(Cerberus &&) = default;
 
@@ -47,9 +50,10 @@ namespace Procon {
 		if (impl->close == nullptr) {
 			throw CerberusError("Unable to load function HidGuardianClose");
 		}
-
 		if (!impl->open()) {
 			throw CerberusError("Error connecting to the Cerberus service");
 		}
+		impl->open = nullptr;
 	}
 };
+#endif

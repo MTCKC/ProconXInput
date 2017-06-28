@@ -1,14 +1,21 @@
 #include "Controller.hpp"
 
 #include <array>
+#include <algorithm>
 #include <iostream>
-#include <vector>
+#include <iomanip>
+#include <functional> // reference_wrapper
 #include <limits>
+#include <mutex>
+#include <vector>
 
-#include <ViGEmUM.h>
 
 #include "hidapi.h"
 
+namespace {
+	std::vector<std::reference_wrapper<Procon::Controller>> controllers;
+	std::mutex controllerSetMut;
+}
 
 namespace Procon {
 	using std::array;
@@ -20,10 +27,13 @@ namespace Procon {
 
 	Controller::Controller() :vController(), device(nullptr) {
 		VIGEM_TARGET_INIT(&vController);
+		std::lock_guard<std::mutex> lock(controllerSetMut);
+		controllers.emplace_back(std::ref(*this));
 	}
 	Controller::Controller(Controller &&) = default;
 	Controller& Controller::operator=(Controller &&) = default;
 	Controller::~Controller() {
+		std::lock_guard<std::mutex> lock(controllerSetMut);
 		if (vController.State == VIGEM_TARGET_CONNECTED) {
 			vigem_target_unplug(&vController);
 		}
@@ -31,6 +41,19 @@ namespace Procon {
 			static const array<uchar, 2> disconnect{ 0x80, 0x05 };
 			exchange(disconnect);
 		}
+		auto i = std::find_if(
+			controllers.begin(),
+			controllers.end(),
+			[this](const std::reference_wrapper<Controller> &other){
+				return *this == other.get();
+		});
+		if (i != controllers.end()) {
+			controllers.erase(i);
+		}
+	}
+
+	bool operator==(const Controller &lhs, const Controller &rhs) {
+		return &lhs == &rhs;
 	}
 };
 namespace {
@@ -62,22 +85,46 @@ namespace {
 		uint8_t sticks[6];
 	};
 
+	constexpr double lerp(double min, double max, double t) {
+		return (1.0 - t) * min + t * max;
+	}
 	short expandUChar(uchar c) {
-		int big = c;
-		big *= std::numeric_limits<short>::max() + 1;
-		big /= 128;
-		big -= std::numeric_limits<short>::max() + 1;
-		return static_cast<short>(big);
-	}
+		constexpr uchar ucmax = std::numeric_limits<uchar>::max();
+		constexpr short smax = std::numeric_limits<short>::max();
+		constexpr short smin = std::numeric_limits<short>::min();
 
-	VOID CALLBACK testNotification(VIGEM_TARGET t, UCHAR LargeMotor, UCHAR SmallMotor, UCHAR LEDNumber) {
-		std::cout << "LED:" << static_cast<int>(LEDNumber) << " Serial: " << t.SerialNo << " ProductID: " << t.ProductId
-			<< " VendorID: " << t.VendorId << '\n';
+		double d = std::clamp(static_cast<double>(c) / ucmax, 0.0, 1.0);
+		return static_cast<short>( lerp(smin, smax, d) );
 	}
-
+	bool targetEquals(const VIGEM_TARGET &lhs, const VIGEM_TARGET &rhs) {
+		return
+			lhs.ProductId == rhs.ProductId &&
+			lhs.SerialNo == rhs.SerialNo &&
+			lhs.State == rhs.State &&
+			lhs.VendorId == rhs.VendorId;
+	}
 };
 namespace Procon {
+
+	VOID CALLBACK vigemCallback(VIGEM_TARGET t, UCHAR LargeMotor, UCHAR SmallMotor, UCHAR LEDNumber) {
+		std::lock_guard<std::mutex> lock(controllerSetMut);
+		auto it = std::find_if(
+			controllers.begin(),
+			controllers.end(),
+			[&t](const std::reference_wrapper<Controller> &r) {
+				return targetEquals(r.get().vController, t);
+		});
+		if (it != controllers.end()) {
+			Controller &con = it->get();
+			con.currentLed = LEDNumber;
+			con.largeMotor = LargeMotor;
+			con.smallMotor = SmallMotor;
+		}
+	}
 	void Controller::openDevice(hid_device_info *dev) {
+		using namespace std::this_thread;
+		using namespace std::chrono;
+
 		if (dev == nullptr)
 			throw ControllerException("Unable to open controller device: dev was nullptr.");
 		if (dev->product_id != Procon_ID)
@@ -93,18 +140,18 @@ namespace Procon {
 		exchange(switchBaudrate);
 		exchange(handshake);
 		exchange(HIDOnlyMode);
+		lastCommand = clock::now();
 		sendSubcommand(0x1, rumbleCommand, enable);
 		sendSubcommand(0x1, imuDataCommand, enable);
-		 
 		sendSubcommand(0x1, ledCommand, led);
 
 		if (vigem_target_plugin(Xbox360Wired, &vController) != VIGEM_ERROR_NONE) {
 			device.reset(nullptr);
 			throw ControllerException("Unable to plugin ViGEm controller.");
 		}
-
-		vigem_register_xusb_notification(testNotification, vController);
-
+		sleep_for(milliseconds(100));
+		vigem_register_xusb_notification(vigemCallback, vController);
+		sleep_for(milliseconds(100));
 
 	}
 
@@ -203,15 +250,22 @@ namespace {
 		pullButtonsFromByte(p.leftButtons, ButtonSource::Left, buttons);
 		pullButtonsFromByte(p.rightButtons, ButtonSource::Right, buttons);
 		pullButtonsFromByte(p.middleButtons, ButtonSource::Middle, buttons);
-
-		for (auto pair : buttons) {
 #ifdef _DEBUG
-			//std::cout << "Button " << buttonToString(std::get<0>(pair)) << " is " << (std::get<1>(pair) ? " pressed\n" : " up\n");
+		bool pressedAny = false;
 #endif
+		for (auto pair : buttons) {
 			if (std::get<1>(pair)) {
+#ifdef _DEBUG
+				std::cout << buttonToString(std::get<0>(pair)) << ' ';
+				pressedAny = true;
+#endif
 				mapButtonToReport(std::get<0>(pair), report);
 			}
 		}
+#ifdef _DEBUG
+		if (pressedAny)
+			std::cout << '\n';
+#endif
 	}
 };
 
@@ -220,8 +274,7 @@ namespace Procon {
 	void Controller::pollInput() {
 		if (!device)
 			return;
-		XUSB_REPORT report;
-		memset(&report, 0, sizeof(XUSB_REPORT));
+		XUSB_REPORT report{};
 		auto dat = sendCommand(getInput, empty);
 		if (!dat) {
 			throw ControllerException("Error sending getInput command.");
@@ -231,8 +284,10 @@ namespace Procon {
 			memcpy(&p, dat.value().data(), sizeof(InputPacket));
 
 			mapInputToReport(p, report);
-
-			vigem_xusb_submit_report(vController, report);
+			VIGEM_ERROR err;
+			if ((err = vigem_xusb_submit_report(vController, report)) != VIGEM_ERROR_NONE) {
+				std::cout << "Vigem error: " << err << '\n';
+			}
 		}
 	}
 
@@ -310,5 +365,8 @@ namespace {
 		default:
 			return buttonUnknown;
 		}
+	}
+	unsigned char Procon::operator ""_uc(unsigned long long t) {
+		return static_cast<unsigned char>(t);
 	}
 

@@ -1,5 +1,5 @@
 #pragma once
-
+#ifndef NO_CERBERUS
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -16,8 +16,8 @@ namespace Procon {
 	// Create one, then call init() to open HidCerberus. Cleanup is when the
 	// object is destructed.
 	// Throws Procon::CerberusError from init() only.
-	struct CerberusImpl;
 	class Cerberus {
+		struct CerberusImpl;
 		std::unique_ptr<CerberusImpl> impl;
 	public:
 		Cerberus();
@@ -32,3 +32,4 @@ namespace Procon {
 		void init();
 	};
 };
+#endif
