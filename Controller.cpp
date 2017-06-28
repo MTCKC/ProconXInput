@@ -6,16 +6,9 @@
 #include <iomanip>
 #include <functional> // reference_wrapper
 #include <limits>
-#include <mutex>
 #include <vector>
 
-
 #include "hidapi.h"
-
-namespace {
-	std::vector<std::reference_wrapper<Procon::Controller>> controllers;
-	std::mutex controllerSetMut;
-}
 
 namespace Procon {
 	using std::array;
@@ -25,36 +18,21 @@ namespace Procon {
 			hid_close(ptr);
 	}
 
-	Controller::Controller() :vController(), device(nullptr) {
-		VIGEM_TARGET_INIT(&vController);
-		std::lock_guard<std::mutex> lock(controllerSetMut);
-		controllers.emplace_back(std::ref(*this));
+	Controller::Controller() :device(nullptr) {
+
 	}
 	Controller::Controller(Controller &&) = default;
 	Controller& Controller::operator=(Controller &&) = default;
 	Controller::~Controller() {
-		std::lock_guard<std::mutex> lock(controllerSetMut);
-		if (vController.State == VIGEM_TARGET_CONNECTED) {
-			vigem_target_unplug(&vController);
+		if (_connected) {
+			XOutputUnPlug(0);
 		}
 		if (device) {
 			static const array<uchar, 2> disconnect{ 0x80, 0x05 };
 			exchange(disconnect);
 		}
-		auto i = std::find_if(
-			controllers.begin(),
-			controllers.end(),
-			[this](const std::reference_wrapper<Controller> &other){
-				return *this == other.get();
-		});
-		if (i != controllers.end()) {
-			controllers.erase(i);
-		}
 	}
 
-	bool operator==(const Controller &lhs, const Controller &rhs) {
-		return &lhs == &rhs;
-	}
 };
 namespace {
 	using std::array;
@@ -96,31 +74,10 @@ namespace {
 		double d = std::clamp(static_cast<double>(c) / ucmax, 0.0, 1.0);
 		return static_cast<short>( lerp(smin, smax, d) );
 	}
-	bool targetEquals(const VIGEM_TARGET &lhs, const VIGEM_TARGET &rhs) {
-		return
-			lhs.ProductId == rhs.ProductId &&
-			lhs.SerialNo == rhs.SerialNo &&
-			lhs.State == rhs.State &&
-			lhs.VendorId == rhs.VendorId;
-	}
+
 };
 namespace Procon {
 
-	VOID CALLBACK vigemCallback(VIGEM_TARGET t, UCHAR LargeMotor, UCHAR SmallMotor, UCHAR LEDNumber) {
-		std::lock_guard<std::mutex> lock(controllerSetMut);
-		auto it = std::find_if(
-			controllers.begin(),
-			controllers.end(),
-			[&t](const std::reference_wrapper<Controller> &r) {
-				return targetEquals(r.get().vController, t);
-		});
-		if (it != controllers.end()) {
-			Controller &con = it->get();
-			con.currentLed = LEDNumber;
-			con.largeMotor = LargeMotor;
-			con.smallMotor = SmallMotor;
-		}
-	}
 	void Controller::openDevice(hid_device_info *dev) {
 		using namespace std::this_thread;
 		using namespace std::chrono;
@@ -145,12 +102,11 @@ namespace Procon {
 		sendSubcommand(0x1, imuDataCommand, enable);
 		sendSubcommand(0x1, ledCommand, led);
 
-		if (vigem_target_plugin(Xbox360Wired, &vController) != VIGEM_ERROR_NONE) {
+		if (XOutputPlugIn(0) != ERROR_SUCCESS) {
 			device.reset(nullptr);
-			throw ControllerException("Unable to plugin ViGEm controller.");
+			throw ControllerException("Unable to plugin XOutput controller.");
 		}
-		sleep_for(milliseconds(100));
-		vigem_register_xusb_notification(vigemCallback, vController);
+		_connected = true;
 		sleep_for(milliseconds(100));
 
 	}
@@ -221,7 +177,7 @@ namespace {
 		}
 	}
 
-	void mapButtonToReport(Button b, XUSB_REPORT &report) {
+	void mapButtonToReport(Button b, XINPUT_GAMEPAD &report) {
 		switch (b) {
 		case Button::LZ:
 			report.bLeftTrigger = std::numeric_limits<BYTE>::max();
@@ -235,7 +191,7 @@ namespace {
 		}
 	}
 
-	void mapInputToReport(const InputPacket &p, XUSB_REPORT &report) {
+	void mapInputToReport(const InputPacket &p, XINPUT_GAMEPAD &report) {
 		uchar LeftX = ((p.sticks[1] & 0x0F) << 4) | ((p.sticks[0] & 0xF0) >> 4);
 		uchar LeftY = p.sticks[2];
 		uchar RightX = ((p.sticks[4] & 0x0F) << 4) | ((p.sticks[3] & 0xF0) >> 4);
@@ -274,7 +230,7 @@ namespace Procon {
 	void Controller::pollInput() {
 		if (!device)
 			return;
-		XUSB_REPORT report{};
+		XINPUT_GAMEPAD report{};
 		auto dat = sendCommand(getInput, empty);
 		if (!dat) {
 			throw ControllerException("Error sending getInput command.");
@@ -284,15 +240,16 @@ namespace Procon {
 			memcpy(&p, dat.value().data(), sizeof(InputPacket));
 
 			mapInputToReport(p, report);
-			VIGEM_ERROR err;
-			if ((err = vigem_xusb_submit_report(vController, report)) != VIGEM_ERROR_NONE) {
-				std::cout << "Vigem error: " << err << '\n';
+			DWORD err;
+			
+			if ((err = XOutputSetState(0, &report)) != ERROR_SUCCESS) {
+				std::cout << "XOutput error: " << err << '\n';
 			}
 		}
 	}
 
 	bool Controller::connected() const {
-		return vController.State == VIGEM_TARGET_CONNECTED;
+		return _connected;
 	}
 
 	ControllerException::ControllerException(const std::string& what) : runtime_error(what) {}

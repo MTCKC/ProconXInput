@@ -5,7 +5,7 @@
 #define NOMINMAX
 #include <Windows.h>
 #include <conio.h> // _kbhit, _getch_nolock
-#include <ViGEmUM.h>
+#include <XOutput.h>
 
 #include "Common.hpp"
 #include "Controller.hpp"
@@ -39,8 +39,8 @@ namespace {
 		SetConsoleCtrlHandler(breakHandler, FALSE);
 	}
 
-	inline bool VIGEM_SUCCESS(VIGEM_ERROR e) {
-		return e == VIGEM_ERROR_NONE;
+	inline bool SUCCESS(DWORD e) {
+		return e == ERROR_SUCCESS;
 	}
 
 	void pause() {
@@ -61,13 +61,11 @@ int main(int, char*[]) {
 
 	// Pause before exiting
 	auto pause = make_scoped(::pause);
-
-	if (!VIGEM_SUCCESS(vigem_init())) {
-		cout << "Unable to initialize ViGEm.\n";
+	DWORD unused;
+	if (!SUCCESS(XOutputGetBusVersion(&unused))) {
+		cout << "Unable to connect to ScpVBus.\n";
 		return -1;
 	}
-	
-	auto shutdownViGEm = make_scoped(vigem_shutdown);
 	
 #ifndef NO_CERBERUS
 	Cerberus cerb;
@@ -113,7 +111,7 @@ int main(int, char*[]) {
 	::setBreakHandler();
 	while (!::hasBroke) {
 		c.pollInput();
-		sleep_for(milliseconds(1));
+		std::this_thread::yield();
 	}
 
 	return 0;

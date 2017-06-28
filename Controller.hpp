@@ -8,7 +8,7 @@
 
 #define NOMINMAX
 #include <Windows.h>
-#include <ViGEmUM.h>
+#include <XOutput.h>
 
 #include "Common.hpp"
 #include "hidapi.h"
@@ -27,7 +27,7 @@ namespace Procon {
 	// Cleanup is automatic when the object is destroyed.
 	// Throws Procon::Controller exceptions from openDevice.
 	class Controller {
-		VIGEM_TARGET vController;
+		bool _connected;
 		std::unique_ptr<hid_device, HIDCloser> device;
 		uchar rumbleCounter{ 0 };
 		using clock = std::chrono::steady_clock;
@@ -47,8 +47,7 @@ namespace Procon {
 		void pollInput();
 
 		bool connected() const;
-		friend bool operator==(const Controller& lhs, const Controller& rhs);
-		friend VOID CALLBACK vigemCallback(VIGEM_TARGET t, UCHAR LargeMotor, UCHAR SmallMotor, UCHAR LEDNumber);
+		
 	private:
 		using exchangeArray = std::optional<std::array<uchar, exchangeLen>>;
 
@@ -80,9 +79,6 @@ namespace Procon {
 
 		template<size_t len>
 		exchangeArray sendSubcommand(uchar command, uchar subcommand, std::array<uchar, len> const& data) {
-			while (clock::now() < lastCommand + std::chrono::milliseconds(100)){
-				std::this_thread::yield();
-			}
 			std::array<uchar, 10 + len> buf
 			{ 
 				static_cast<uchar>(rumbleCounter++ & 0xF),
@@ -131,9 +127,6 @@ namespace Procon {
 		}
 
 	};
-
-	bool operator==(const Controller &lhs, const Controller &rhs);
-	VOID CALLBACK vigemCallback(VIGEM_TARGET t, UCHAR LargeMotor, UCHAR SmallMotor, UCHAR LEDNumber);
 
 	class ControllerException : public std::runtime_error {
 	public:
