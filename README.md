@@ -31,4 +31,4 @@ This code is available under the MIT License, see LICENSE.txt
 
 XOutput and ScpVBus are part of the ScpToolkit, licensed under Gnu GPLv3, see LICENSE-Scp.txt
 
-hidapi is licensed under the MIT License, see LICENSE-hidapi.txt
+hidapi is licensed under a BSD-style 3-clause license, see LICENSE-hidapi.txt
