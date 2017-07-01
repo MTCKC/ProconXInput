@@ -9,13 +9,12 @@ Based upon the work of:
 
 ## Requirements
 
-- Both the ScpVBus driver and XOutput library from [here](https://github.com/nefarius/ScpVBus).
-- ScpVBus from the [ScpToolkit installer](https://github.com/nefarius/ScpToolkit/) will probably work, but I haven't tested it and it comes with a bunch of extra stuff.
+- Both the ScpVBus driver and XOutput library compiled from [here](https://github.com/nefarius/ScpVBus). ScpVBus from the official ScpToolkit installer/repo does NOT work.
 - Link to XOutput1_2.lib and setupapi.lib
 - Supports [HidGuardian](https://github.com/nefarius/ViGEm/tree/master/HidGuardian) via [HidCerberus.Srv](https://github.com/nefarius/ViGEm/tree/master/HidCerberus.Srv). Define NO_CERBERUS to disable support, but it will run fine even without disabling if neither are available
-- HidGuardian/HidCerberus.Srv support requires [HidCerberus.Lib](https://github.com/nefarius/ViGEm/tree/master/HidCerberus.Lib).dll which is dynamically loaded at runtime
+- HidGuardian/HidCerberus.Srv support requires [HidCerberus.Lib](https://github.com/nefarius/ViGEm/tree/master/HidCerberus.Lib).dll which is dynamically loaded at runtime. This library is optional, and the driver will work without it
 - A Switch Pro Controller attatched via USB
-- &lt;optional&gt; support, compile with /std:c++latest in MSVC or add your own implementation
+- A C++ compiler with &lt;optional&gt; support. For MSVC, compile with /std:c++latest or add your own implementation
 
 ## Building
 

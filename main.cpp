@@ -1,6 +1,7 @@
 #include <iostream> // cout
-#include <thread> // this_thread::sleep_for
+#include <thread> // this_thread::sleep_for, this_thread::yield
 #include <chrono> // milliseconds
+#include <vector>
 
 #define NOMINMAX
 #include <Windows.h>
@@ -10,11 +11,6 @@
 #include "Common.hpp"
 #include "Controller.hpp"
 #include "Cerberus.hpp"
-
-#ifdef VIGEM_SUCCESS
-// Write it as a function, not a #define
-#undef VIGEM_SUCCESS
-#endif
 
 namespace {
 	bool hasBroke{ false };
@@ -55,12 +51,12 @@ namespace {
 // argc and argv are unused
 int main(int, char*[]) {
 	using std::cout;
+	using std::this_thread::yield;
 	using namespace Procon;
-	using namespace std::this_thread; // sleep_for
-	using namespace std::chrono; // milliseconds
 
 	// Pause before exiting
 	auto pause = make_scoped(::pause);
+
 	DWORD unused;
 	if (!SUCCESS(XOutputGetBusVersion(&unused))) {
 		cout << "Unable to connect to ScpVBus.\n";
@@ -71,6 +67,7 @@ int main(int, char*[]) {
 	Cerberus cerb;
 	try {
 		cerb.init();
+		cout << "Initialized HidCerberus.\n";
 	}
 	catch (CerberusError &e) {
 		cout << "Unable to initialize Cerberus.\n";
@@ -78,8 +75,8 @@ int main(int, char*[]) {
 		cout << "Continuing, may not find the controller if it's hidden by HidGuardian.\n";
 	}
 #endif
-	
-	Controller c;
+	std::vector<Controller> cs;
+	uchar port{ 0 };
 	{
 		constexpr auto id = Procon_ID; // Procon only for now
 		constexpr auto vendorId = NintendoID;
@@ -89,7 +86,8 @@ int main(int, char*[]) {
 			if (iter != nullptr) {
 				if (iter->product_id == id) { // Check the id!
 					try {
-						c.openDevice(iter);
+						cs.emplace_back(Controller(port++));
+						cs.back().openDevice(iter);
 					}
 					catch (ControllerException &e) {
 						cout << "Exception connecting to controller: " << e.what() << '\n';
@@ -98,20 +96,20 @@ int main(int, char*[]) {
 				}
 				iter = iter->next;
 			}
-		} while (!c.connected() && iter != nullptr);
+		} while (iter != nullptr && port < 4);
 		hid_free_enumeration(devs);
 	}
-	if (!c.connected()) {
+	if (cs.size() == 0) {
 		cout << "Unable to find controller.\n";
 		return -1;
 	}
 
-	cout << "Connected to controller. Beginning xInput emulation.\n";
+	cout << "Connected to " << static_cast<int>(port) << " controller(s). Beginning xInput emulation.\n";
 	cout << "Press CTRL+C to exit.\n";
 	::setBreakHandler();
 	while (!::hasBroke) {
-		c.pollInput();
-		std::this_thread::yield();
+		std::for_each(cs.begin(), cs.end(), [](Controller &c) {c.pollInput(); });
+		yield(); // sleep_for causes big lag and not yielding eats way more processor
 	}
 
 	return 0;

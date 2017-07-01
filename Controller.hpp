@@ -31,12 +31,10 @@ namespace Procon {
 		std::unique_ptr<hid_device, HIDCloser> device;
 		uchar rumbleCounter{ 0 };
 		using clock = std::chrono::steady_clock;
-		clock::time_point lastCommand{ clock::now() };
-		uchar currentLed{ 0 };
-		uchar largeMotor{ 0 };
-		uchar smallMotor{ 0 };
+		clock::time_point lastStatus{ clock::now() };
+		uchar port{ 0 };
 	public:
-		Controller();
+		Controller(uchar port);
 		Controller(Controller &&);
 		Controller(const Controller&) = delete;
 		Controller& operator=(const Controller&) = delete;
@@ -47,8 +45,11 @@ namespace Procon {
 		void pollInput();
 
 		bool connected() const;
-		
+		uchar getPort() const;
 	private:
+
+		void updateStatus();
+
 		using exchangeArray = std::optional<std::array<uchar, exchangeLen>>;
 
 		template<size_t len>
@@ -93,38 +94,11 @@ namespace Procon {
 				subcommand
 			};
 			memcpy(buf.data() + 10, data.data(), len);
-			lastCommand = clock::now();
 			return sendCommand(command, buf);
 		}
 
 
-		template<size_t len>
-		exchangeArray sendRumble(uchar largeMotor, uchar smallMotor) {
-			while (clock::now() < lastCommand + std::chrono::milliseconds(100)) {
-				std::this_thread::yield();
-			}
-			std::array<uchar, 9> buf{
-				static_cast<uchar>(rumbleCounter++ & 0xF),
-				0x80_uc,
-				0x00_uc,
-				0x40_uc,
-				0x40_uc,
-				0x80_uc,
-				0x00_uc,
-				0x40_uc,
-				0x40_uc
-			};
-			if (largeMotor != 0) {
-				buf[1] = buf[5] = 0x08;
-				buf[2] = buf[6] = largeMotor;
-			}
-			else if (smallMotor != 0) {
-				buf[1] = buf[5] = 0x10;
-				buf[2] = buf[6] = smallMotor;
-			}
-			lastCommand = clock::now();
-			return sendCommand(0x10, buf);
-		}
+		exchangeArray sendRumble(uchar largeMotor, uchar smallMotor);
 
 	};
 

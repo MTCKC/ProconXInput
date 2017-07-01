@@ -18,14 +18,14 @@ namespace Procon {
 			hid_close(ptr);
 	}
 
-	Controller::Controller() :device(nullptr) {
+	Controller::Controller(uchar port) :device(nullptr), port(port) {
 
 	}
 	Controller::Controller(Controller &&) = default;
 	Controller& Controller::operator=(Controller &&) = default;
 	Controller::~Controller() {
 		if (_connected) {
-			XOutputUnPlug(0);
+			XOutputUnPlug(port);
 		}
 		if (device) {
 			static const array<uchar, 2> disconnect{ 0x80, 0x05 };
@@ -97,18 +97,19 @@ namespace Procon {
 		exchange(switchBaudrate);
 		exchange(handshake);
 		exchange(HIDOnlyMode);
-		lastCommand = clock::now();
+		
+		
 		sendSubcommand(0x1, rumbleCommand, enable);
 		sendSubcommand(0x1, imuDataCommand, enable);
 		sendSubcommand(0x1, ledCommand, led);
 
-		if (XOutputPlugIn(0) != ERROR_SUCCESS) {
+		if (XOutputPlugIn(port) != ERROR_SUCCESS) {
 			device.reset(nullptr);
 			throw ControllerException("Unable to plugin XOutput controller.");
 		}
 		_connected = true;
 		sleep_for(milliseconds(100));
-
+		//updateStatus();
 	}
 
 };
@@ -242,14 +243,59 @@ namespace Procon {
 			mapInputToReport(p, report);
 			DWORD err;
 			
-			if ((err = XOutputSetState(0, &report)) != ERROR_SUCCESS) {
+			if ((err = XOutputSetState(port, &report)) != ERROR_SUCCESS) {
 				std::cout << "XOutput error: " << err << '\n';
 			}
 		}
+		//updateStatus();
 	}
 
 	bool Controller::connected() const {
 		return _connected;
+	}
+	uchar Controller::getPort() const {
+		return port;
+	}
+
+	void Controller::updateStatus() {
+		if (clock::now() < lastStatus + std::chrono::milliseconds(100)) {
+			return;
+		}
+		uchar vibrate{ 0 };
+		uchar led{ 0 };
+		uchar smallMotor{ 0 };
+		uchar bigMotor{ 0 };
+		XOutputGetState(port, &vibrate, &bigMotor, &smallMotor, &led);
+		if (vibrate != 0) {
+			sendRumble(bigMotor, 0);
+			sendRumble(0, smallMotor);
+		}
+		array<uchar, 1> ledData{ static_cast<uchar>(0x1 << led) };
+		sendSubcommand(0x1, ledCommand, ledData);
+		lastStatus = clock::now();
+	}
+
+	Controller::exchangeArray Controller::sendRumble(uchar largeMotor, uchar smallMotor){
+		std::array<uchar, 9> buf{
+			static_cast<uchar>(rumbleCounter++ & 0xF),
+			0x80_uc,
+			0x00_uc,
+			0x40_uc,
+			0x40_uc,
+			0x80_uc,
+			0x00_uc,
+			0x40_uc,
+			0x40_uc
+		};
+		if (largeMotor != 0) {
+			buf[1] = buf[5] = 0x08;
+			buf[2] = buf[6] = largeMotor;
+		}
+		else if (smallMotor != 0) {
+			buf[1] = buf[5] = 0x10;
+			buf[2] = buf[6] = smallMotor;
+		}
+		return sendCommand(0x10, buf);
 	}
 
 	ControllerException::ControllerException(const std::string& what) : runtime_error(what) {}

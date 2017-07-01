@@ -63,8 +63,8 @@ namespace Procon {
 	const std::array<Button, 8> JoyconRBitmap = {
 		Button::Y,
 		Button::X,
-		Button::A,
 		Button::B,
+		Button::A,
 		Button::None,
 		Button::None,
 		Button::R,
