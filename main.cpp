@@ -6,7 +6,7 @@
 #define NOMINMAX
 #include <Windows.h>
 #include <conio.h> // _kbhit, _getch_nolock
-#include <XOutput.h>
+#include "XOutput.hpp"
 
 #include "Common.hpp"
 #include "Controller.hpp"
@@ -35,8 +35,8 @@ namespace {
 		SetConsoleCtrlHandler(breakHandler, FALSE);
 	}
 
-	inline bool SUCCESS(DWORD e) {
-		return e == ERROR_SUCCESS;
+	constexpr bool SUCCESS(DWORD e) {
+		return e == XOutput::XOUTPUT_SUCCESS;
 	}
 
 	void pause() {
@@ -57,12 +57,20 @@ int main(int, char*[]) {
 	// Pause before exiting
 	auto pause = make_scoped(::pause);
 
+	try {
+		XOutput::XOutputInitialize();
+	}
+	catch (XOutput::XOutputError &e) {
+		cout << e.what() << '\n';
+		return -1;
+	}
+
 	DWORD unused;
-	if (!SUCCESS(XOutputGetBusVersion(&unused))) {
+	if (!SUCCESS(XOutput::XOutputGetRealUserIndex(0, &unused))) {
 		cout << "Unable to connect to ScpVBus.\n";
 		return -1;
 	}
-	
+
 #ifndef NO_CERBERUS
 	Cerberus cerb;
 	try {
@@ -75,6 +83,7 @@ int main(int, char*[]) {
 		cout << "Continuing, may not find the controller if it's hidden by HidGuardian.\n";
 	}
 #endif
+
 	std::vector<Controller> cs;
 	uchar port{ 0 };
 	{
@@ -107,9 +116,16 @@ int main(int, char*[]) {
 	cout << "Connected to " << static_cast<int>(port) << " controller(s). Beginning xInput emulation.\n";
 	cout << "Press CTRL+C to exit.\n";
 	::setBreakHandler();
-	while (!::hasBroke) {
-		std::for_each(cs.begin(), cs.end(), [](Controller &c) {c.pollInput(); });
-		yield(); // sleep_for causes big lag and not yielding eats way more processor
+
+	try {
+		while (!::hasBroke) {
+			std::for_each(cs.begin(), cs.end(), [](Controller &c) {c.pollInput(); });
+			yield(); // sleep_for causes big lag and not yielding eats way more processor
+		}
+	}
+	catch (ControllerException &e) {
+		cout << "ControllerException: " << e.what() << '\n';
+		return -1;
 	}
 
 	return 0;

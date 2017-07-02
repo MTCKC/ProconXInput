@@ -8,7 +8,6 @@
 
 #define NOMINMAX
 #include <Windows.h>
-#include <XOutput.h>
 
 #include "Common.hpp"
 #include "hidapi.h"

@@ -1,33 +1,49 @@
 # ProconXInput
 
-A Windows-only XInput USB user mode driver for the Switch Pro Controller using hidapi and XOutput/ScpVBus.
+A Windows-only XInput USB user-mode driver for the Switch Pro Controller using hidapi, ScpVBus, and XOutput.
 
 Based upon the work of:
 
 - @ShinyQuagsire [here](https://github.com/shinyquagsire23/HID-Joy-Con-Whispering), which was based upon the work of dekuNukem and other contributors [here](https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering). 
-- Rumble features from @TheToadKing [here](https://github.com/ToadKing/switch-pro-x).
+- Rumble features (Currently unsupported) from @TheToadKing [here](https://github.com/ToadKing/switch-pro-x).
 
-## Requirements
+## Build Requirements
 
-- Both the ScpVBus driver and XOutput library compiled from [here](https://github.com/nefarius/ScpVBus). ScpVBus from the official ScpToolkit installer/repo does NOT work.
-- Link to XOutput1_2.lib and setupapi.lib
+- Link to setupapi.lib
+- A C++ compiler with &lt;optional&gt; support. For MSVC, compile with /std:c++latest or add your own implementation
+
+## Run Requirements
+
+- [ScpVBus](https://github.com/nefarius/ScpToolkit/tree/master/ScpControl/ScpVBus) driver installed. If you have the ScpToolkit installed, this is already installed
+- [XOutput1_1.dll](https://github.com/nefarius/ScpToolkit/tree/master/ScpControl/XOutput) in the same directory as the program, dynamically loaded at runtime
 - Supports [HidGuardian](https://github.com/nefarius/ViGEm/tree/master/HidGuardian) via [HidCerberus.Srv](https://github.com/nefarius/ViGEm/tree/master/HidCerberus.Srv). Define NO_CERBERUS to disable support, but it will run fine even without disabling if neither are available
 - HidGuardian/HidCerberus.Srv support requires [HidCerberus.Lib](https://github.com/nefarius/ViGEm/tree/master/HidCerberus.Lib).dll which is dynamically loaded at runtime. This library is optional, and the driver will work without it
 - A Switch Pro Controller attatched via USB
-- A C++ compiler with &lt;optional&gt; support. For MSVC, compile with /std:c++latest or add your own implementation
+
+## Installing/Uninstalling ScpVBus
+
+1. Get devcon.exe, and put it in the PATH or next to the driver to install. Make sure you install the amd64 driver on 64 bit Windows, and the x86 driver on 32 bit
+2. Run `devcon install ScpVBus.inf Root\ScpVBus` in the same folder as the driver
+3. Press "Install" when the confirmation box shows up, optionally untick "Always trust software from '...'"
+4. Good to go! Try running the driver.
+5. To uninstall ScpVBus, run `devcon remove Root\ScpVBus` or in Device Manager right click System Devices/Scp Virtual Bus Driver and hit "Uninstall".
+
+Or, you can install the ScpToolkit if you don't want to do it manually. This installs a bunch of extra software that isn't required, however.
 
 ## Building
 
-You can use the included project for Visual Studio 2017 provided you edit the include and library directories. If you don't have VS2017, you can add the files to an empty C++ project. Then add XOutput headers to your include directories, XOutput1_2.lib's location to your library directories, set C++ Language Standard to /std:c++latest, add XOutput1_2.lib and setupapi.lib to linker input, and build.
+You can use the included project for Visual Studio 2017. If you don't have VS2017, you can add the files to an empty C++ project. Then, set C++ Language Standard to /std:c++latest, add setupapi.lib to linker input, and build.
 
 ## Using
 
-Plug in the Pro Controller, then run ProconXInput.exe. Press CTRL+C or close the window when you're done.
+Plug in the Pro Controller, then run ProconXInput.exe. Press CTRL+C when you're done.
+
+If the controller is plugged in and the driver doesn't detect it or doesn't work properly, try replugging it before running the driver. Sometimes the controller can get 'stuck' and won't reinitialize properly after computer reboots or driver crashes/unexpected closes.
 
 ## License
 
-This code is available under the MIT License, see LICENSE.txt
+This code is available under the MIT (Expat) License, see LICENSE.txt
 
-XOutput and ScpVBus are part of the ScpToolkit, licensed under Gnu GPLv3, see LICENSE-Scp.txt
+XOutput and ScpVBus are part of the ScpToolkit, licensed under GNU GPLv3, see LICENSE-Scp.txt
 
-hidapi is licensed under a BSD-style 3-clause license, see LICENSE-hidapi.txt
+hidapi is licensed under a BSD 3-clause license, see LICENSE-hidapi.txt

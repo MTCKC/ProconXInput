@@ -9,6 +9,9 @@
 #include <vector>
 
 #include "hidapi.h"
+#include "XOutput.hpp"
+
+using namespace XOutput;
 
 namespace Procon {
 	using std::array;
