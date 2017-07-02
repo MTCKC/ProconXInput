@@ -3,7 +3,9 @@
 #include <chrono> // milliseconds
 #include <vector>
 
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include <Windows.h>
 #include <conio.h> // _kbhit, _getch_nolock
 #include "XOutput.hpp"
@@ -40,7 +42,7 @@ namespace {
 	}
 
 	void pause() {
-		while (_kbhit() != 0) _getch_nolock(); // Eat any buffered input
+		while (_kbhit() != 0) _getch(); // Eat any buffered input
 		std::cout << "Press any key to continue..." << std::endl; // Intentional use of endl to flush output buffer
 		while (_kbhit() == 0) { // Wait for any input
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -119,7 +121,9 @@ int main(int, char*[]) {
 
 	try {
 		while (!::hasBroke) {
-			std::for_each(cs.begin(), cs.end(), [](Controller &c) {c.pollInput(); });
+			for (int i = 0; i < port; ++i) {
+				cs[i].pollInput();
+			}
 			yield(); // sleep_for causes big lag and not yielding eats way more processor
 		}
 	}

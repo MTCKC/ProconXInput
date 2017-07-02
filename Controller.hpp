@@ -6,7 +6,9 @@
 #include <chrono>
 #include <thread>
 
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include <Windows.h>
 
 #include "Common.hpp"
@@ -72,7 +74,9 @@ namespace Procon {
 			buf[0x1] = 0x92;
 			buf[0x3] = 0x31;
 			buf[0x8] = command;
-			memcpy(buf.data() + 0x9, data.data(), len);
+			if (len > 0) {
+				memcpy(buf.data() + 0x9, data.data(), len);
+			}
 			return exchange(buf);
 		}
 
@@ -92,7 +96,9 @@ namespace Procon {
 				0x40_uc,
 				subcommand
 			};
-			memcpy(buf.data() + 10, data.data(), len);
+			if (len > 0) {
+				memcpy(buf.data() + 10, data.data(), len);
+			}
 			return sendCommand(command, buf);
 		}
 

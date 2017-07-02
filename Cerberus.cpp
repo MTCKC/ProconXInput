@@ -1,7 +1,9 @@
 #ifndef NO_CERBERUS
 #include "Cerberus.hpp"
 
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include <Windows.h>
 #include <stdexcept>
 

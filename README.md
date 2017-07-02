@@ -1,4 +1,4 @@
-# ProconXInput
+# ProconXInput v0.1-alpha
 
 A Windows-only XInput USB user-mode driver for the Switch Pro Controller using hidapi, ScpVBus, and XOutput.
 
@@ -23,12 +23,13 @@ Based upon the work of:
 ## Installing/Uninstalling ScpVBus
 
 1. Get devcon.exe, and put it in the PATH or next to the driver to install. Make sure you install the amd64 driver on 64 bit Windows, and the x86 driver on 32 bit
-2. Run `devcon install ScpVBus.inf Root\ScpVBus` in the same folder as the driver
-3. Press "Install" when the confirmation box shows up, optionally untick "Always trust software from '...'"
-4. Good to go! Try running the driver.
-5. To uninstall ScpVBus, run `devcon remove Root\ScpVBus` or in Device Manager right click System Devices/Scp Virtual Bus Driver and hit "Uninstall".
+2. Launch an Administrator command prompt and navigate to the driver folder. devcon will fail if you do not launch it as an Administrator!
+3. Run `devcon install ScpVBus.inf Root\ScpVBus` in the same folder as the driver
+4. Press "Install" when the confirmation box shows up, optionally untick "Always trust software from '...'"
+5. Good to go! Try running ProconXInput.exe
+6. To uninstall ScpVBus, run `devcon remove Root\ScpVBus` or in Device Manager right click System Devices/Scp Virtual Bus Driver and hit "Uninstall"
 
-Or, you can install the ScpToolkit if you don't want to do it manually. This installs a bunch of extra software that isn't required, however.
+Or, you can install the ScpToolkit if you don't want to do it manually. This installs a bunch of extra software that isn't required, however. Especially make sure to not install the Bluetooth driver if you aren't going to use Dualshock 3 controllers via Bluetooth, as they can interfere with normal Bluetooth usage.
 
 ## Building
 
@@ -45,5 +46,7 @@ If the controller is plugged in and the driver doesn't detect it or doesn't work
 This code is available under the MIT (Expat) License, see LICENSE.txt
 
 XOutput and ScpVBus are part of the ScpToolkit, licensed under GNU GPLv3, see LICENSE-Scp.txt
+
+HidGuardian and HidCerberus.Lib are part of the ViGEm library, licensed under the MIT (Expat) License, see LICENSE-ViGEm.txt
 
 hidapi is licensed under a BSD 3-clause license, see LICENSE-hidapi.txt
