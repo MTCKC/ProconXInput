@@ -2,9 +2,10 @@
 
 #include <array>
 #include <algorithm>
+#ifdef _DEBUG
 #include <iostream>
-#include <iomanip>
-#include <functional> // reference_wrapper
+#endif
+#include <string>
 #include <limits>
 #include <vector>
 
@@ -16,13 +17,30 @@ using namespace XOutput;
 namespace Procon {
 	using std::array;
 
+	void SetDefaultCalibration(CalibrationData &dat) {
+		constexpr uchar ucmin = std::numeric_limits<uchar>::min();
+		constexpr uchar ucmax = std::numeric_limits<uchar>::max();
+		dat.leftCenter.x = ucmax / 2;
+		dat.leftCenter.y = ucmax / 2;
+		dat.rightCenter = dat.leftCenter;
+		dat.left.x.min = dat.leftCenter.x;
+		dat.left.x.max = dat.leftCenter.x;
+		dat.left.y = dat.left.x;
+		dat.right = dat.left;
+	}
+
 	void HIDCloser::operator()(hid_device *ptr) {
 		if (ptr != nullptr)
 			hid_close(ptr);
 	}
-
+	void zeroPadState(ExpandedPadState &state) {
+		state.xinState = { 0 };
+		state.leftStick = { 0 };
+		state.rightStick = { 0 };
+		state.sharePressed = false;
+	}
 	Controller::Controller(uchar port) :device(nullptr), port(port) {
-
+		SetDefaultCalibration(calib);
 	}
 	Controller::Controller(Controller &&) = default;
 	Controller& Controller::operator=(Controller &&) = default;
@@ -40,6 +58,9 @@ namespace Procon {
 namespace {
 	using std::array;
 	using Procon::uchar;
+	using Procon::StickPoint;
+	using Procon::StickRange;
+	using Procon::CalibrationData;
 
 	// openDevice
 	const array<uchar, 2> getMAC{ 0x80, 0x01 };
@@ -69,6 +90,30 @@ namespace {
 	constexpr double lerp(double min, double max, double t) {
 		return (1.0 - t) * min + t * max;
 	}
+
+	// stick is current stick location, range is min/max of stick, center is center point of stick
+	void calibrateToRange(const StickPoint &stick, const StickRange &range, const StickPoint &center, short &outx, short &outy) {
+		constexpr short smax = std::numeric_limits<short>::max();
+		constexpr short smin = std::numeric_limits<short>::min();
+		
+		outx = static_cast<short>(
+			smax * std::clamp(
+				(static_cast<double>(stick.x) - center.x) / static_cast<double>(range.x.max - range.x.min) * 2.0,
+				-1.0,
+				1.0
+			)
+			
+		);
+		outy = static_cast<short>(
+			smax *std::clamp(
+				(static_cast<double>(stick.y) - center.y) / static_cast<double>(range.y.max - range.y.min) * 2.0,
+				-1.0,
+				1.0
+			)
+		);
+
+	}
+
 	short expandUChar(uchar c) {
 		constexpr uchar ucmax = std::numeric_limits<uchar>::max();
 		constexpr short smax = std::numeric_limits<short>::max();
@@ -168,64 +213,78 @@ namespace {
 			return 0x0200;
 		case Button::Home:
 			return 0x0400; // Undocumented
+
+		// NOTICE: A and B are swapped, and X and Y are swapped.
 		case Button::A:
-			return 0x1000;
-		case Button::B:
 			return 0x2000;
+		case Button::B:
+			return 0x1000;
 		case Button::X:
-			return 0x4000;
-		case Button::Y:
 			return 0x8000;
+		case Button::Y:
+			return 0x4000;
 		default:
 			return 0x0000;
 		}
 	}
 
-	void mapButtonToReport(Button b, XINPUT_GAMEPAD &report) {
+	void mapButtonToState(Button b, ExpandedPadState &state) {
 		switch (b) {
 		case Button::LZ:
-			report.bLeftTrigger = std::numeric_limits<BYTE>::max();
+			state.xinState.bLeftTrigger = std::numeric_limits<BYTE>::max();
 			return;
 		case Button::RZ:
-			report.bRightTrigger = std::numeric_limits<BYTE>::max();
+			state.xinState.bRightTrigger = std::numeric_limits<BYTE>::max();
 			return;
+		case Button::Share:
+			state.sharePressed = true;
 		default:
-			report.wButtons |= buttonToReportBits(b);
+			state.xinState.wButtons |= buttonToReportBits(b);
 			return;
 		}
 	}
 
-	void mapInputToReport(const InputPacket &p, XINPUT_GAMEPAD &report) {
-		uchar LeftX = ((p.sticks[1] & 0x0F) << 4) | ((p.sticks[0] & 0xF0) >> 4);
-		uchar LeftY = p.sticks[2];
-		uchar RightX = ((p.sticks[4] & 0x0F) << 4) | ((p.sticks[3] & 0xF0) >> 4);
-		uchar RightY = p.sticks[5];
+	void updateCalibrationRangeStick(const StickPoint &input, StickRange &cal) {
+		using std::max;
+		using std::min;
 
-		report.sThumbLX = expandUChar(LeftX);
-		report.sThumbLY = expandUChar(LeftY);
-		report.sThumbRX = expandUChar(RightX);
-		report.sThumbRY = expandUChar(RightY);
+		cal.x.max = max(cal.x.max, input.x);
+		cal.x.min = min(cal.x.min, input.x);
+		cal.y.max = max(cal.y.max, input.y);
+		cal.y.min = min(cal.y.min, input.y);
+		
+	}
+
+	void updateCalibrationRange(const ExpandedPadState &state, CalibrationData &cal) {
+		updateCalibrationRangeStick(state.leftStick, cal.left);
+		updateCalibrationRangeStick(state.rightStick, cal.right);
+	}
+
+	void mapInputToState(const InputPacket &p, CalibrationData &cal, ExpandedPadState &state) {
+		state.leftStick.x = ((p.sticks[1] & 0x0F) << 4) | ((p.sticks[0] & 0xF0) >> 4);
+		state.leftStick.y = p.sticks[2];
+		state.rightStick.x = ((p.sticks[4] & 0x0F) << 4) | ((p.sticks[3] & 0xF0) >> 4);
+		state.rightStick.y = p.sticks[5];
+		
+		updateCalibrationRange(state, cal);
+
+		// Sets state.xinState's sticks
+		calibrateToRange(state.leftStick, cal.left, cal.leftCenter, state.xinState.sThumbLX, state.xinState.sThumbLY);
+		calibrateToRange(state.rightStick, cal.right, cal.rightCenter, state.xinState.sThumbRX, state.xinState.sThumbRY);
 
 		vector<tuple<Button, bool>> buttons;
 		pullButtonsFromByte(p.leftButtons, ButtonSource::Left, buttons);
 		pullButtonsFromByte(p.rightButtons, ButtonSource::Right, buttons);
 		pullButtonsFromByte(p.middleButtons, ButtonSource::Middle, buttons);
-#ifdef _DEBUG
-		bool pressedAny = false;
-#endif
+
 		for (auto pair : buttons) {
 			if (std::get<1>(pair)) {
 #ifdef _DEBUG
 				std::cout << buttonToString(std::get<0>(pair)) << ' ';
-				pressedAny = true;
 #endif
-				mapButtonToReport(std::get<0>(pair), report);
+				mapButtonToState(std::get<0>(pair), state);
 			}
 		}
-#ifdef _DEBUG
-		if (pressedAny)
-			std::cout << '\n';
-#endif
 	}
 };
 
@@ -234,7 +293,7 @@ namespace Procon {
 	void Controller::pollInput() {
 		if (!device)
 			return;
-		XINPUT_GAMEPAD report{};
+
 		auto dat = sendCommand(getInput, empty);
 		if (!dat) {
 			throw ControllerException("Error sending getInput command.");
@@ -243,11 +302,14 @@ namespace Procon {
 			InputPacket p;
 			memcpy(&p, dat.value().data(), sizeof(InputPacket));
 
-			mapInputToReport(p, report);
-			DWORD err;
+			zeroPadState(padStatus);
+			mapInputToState(p, calib, padStatus);
 			
-			if ((err = XOutputSetState(port, &report)) != ERROR_SUCCESS) {
-				std::cout << "XOutput error: " << err << '\n';
+			DWORD err;
+			if ((err = XOutputSetState(port, &padStatus.xinState)) != ERROR_SUCCESS) {
+				std::string errMsg{ "XOutput Error: " };
+				errMsg += std::to_string(err);
+				throw ControllerException(errMsg);
 			}
 		}
 		//updateStatus();
@@ -259,7 +321,13 @@ namespace Procon {
 	uchar Controller::getPort() const {
 		return port;
 	}
-
+	const ExpandedPadState& Controller::getState() const {
+		return padStatus;
+	}
+	void Controller::setCalibrationCenter(const StickPoint &left, const StickPoint &right) {
+		calib.leftCenter = left;
+		calib.rightCenter = right;
+	}
 	void Controller::updateStatus() {
 		if (clock::now() < lastStatus + std::chrono::milliseconds(100)) {
 			return;

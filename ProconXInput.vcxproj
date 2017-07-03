@@ -130,6 +130,7 @@
     <ClCompile Include="Controller.cpp" />
     <ClCompile Include="hid.c" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Version.cpp" />
     <ClCompile Include="XOutput.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -137,6 +138,7 @@
     <ClInclude Include="Common.hpp" />
     <ClInclude Include="Controller.hpp" />
     <ClInclude Include="hidapi.h" />
+    <ClInclude Include="Version.hpp" />
     <ClInclude Include="XOutput.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

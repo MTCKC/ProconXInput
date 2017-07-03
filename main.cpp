@@ -13,6 +13,7 @@
 #include "Common.hpp"
 #include "Controller.hpp"
 #include "Cerberus.hpp"
+#include "Version.hpp"
 
 namespace {
 	bool hasBroke{ false };
@@ -59,6 +60,8 @@ int main(int, char*[]) {
 	// Pause before exiting
 	auto pause = make_scoped(::pause);
 
+	cout << ProgramName << ' ' << ProgramVersion << ' ' << Platform << ' ' << BuildType << "\n\n";
+
 	try {
 		XOutput::XOutputInitialize();
 	}
@@ -85,7 +88,7 @@ int main(int, char*[]) {
 		cout << "Continuing, may not find the controller if it's hidden by HidGuardian.\n";
 	}
 #endif
-
+	
 	std::vector<Controller> cs;
 	uchar port{ 0 };
 	{
@@ -115,13 +118,41 @@ int main(int, char*[]) {
 		return -1;
 	}
 
-	cout << "Connected to " << static_cast<int>(port) << " controller(s). Beginning xInput emulation.\n";
-	cout << "Press CTRL+C to exit.\n";
+	cout << "\nConnected to " << static_cast<int>(port) << " controller(s). Beginning xInput emulation.\n\n";
+	
+	cout << "Doing calibration, stick min/maxes will be updated automatically.\n";
+	cout << "Move the sticks some, then let them reset to neutral.\n";
+	cout << "Press the Share button to set stick center. This only works once per controller currently!\n";
+	cout << "XInput may be laggier before stick center for all controllers is set!\n\n";
+	
+	cout << "Press CTRL+C to exit.\n\n";
 	::setBreakHandler();
 
+	std::array<bool, 4> hasCentered;
+	hasCentered.fill(false);
+
 	try {
-		while (!::hasBroke) {
-			for (int i = 0; i < port; ++i) {
+		// Testing to set centers, additional comparisons = slower so make it a separate loop
+		size_t countCentered{ 0 };
+		while (!::hasBroke && countCentered < port) {
+			for (size_t i = 0; i < port; ++i) {
+				cs[i].pollInput();
+				if (!hasCentered[i]) {
+					const Procon::ExpandedPadState &state = cs[i].getState();
+					if (state.sharePressed) {
+						cs[i].setCalibrationCenter(state.leftStick, state.rightStick);
+						hasCentered[i] = true;
+						++countCentered;
+						cout << "Set stick centers for controller LED " << i + 1 << '\n';
+					}
+				}
+			}
+			yield();
+		}
+		cout << "\nAll controller stick centers set, entering fast input loop. Enjoy your games!\n";
+		// Centers set, main input loop
+		while(!::hasBroke){
+			for (size_t i = 0; i < port; ++i) {
 				cs[i].pollInput();
 			}
 			yield(); // sleep_for causes big lag and not yielding eats way more processor

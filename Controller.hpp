@@ -10,6 +10,7 @@
 #define NOMINMAX
 #endif
 #include <Windows.h>
+#include <Xinput.h>
 
 #include "Common.hpp"
 #include "hidapi.h"
@@ -17,11 +18,35 @@
 namespace Procon {
 
 	constexpr size_t exchangeLen{ 0x400 };
-
+	struct AxisRange {
+		uchar min;
+		uchar max;
+	};
+	struct StickRange {
+		AxisRange x;
+		AxisRange y;
+	};
+	struct StickPoint {
+		uchar x;
+		uchar y;
+	};
+	struct CalibrationData {
+		StickRange left;
+		StickRange right;
+		StickPoint leftCenter;
+		StickPoint rightCenter;
+	};
+	void SetDefaultCalibration(CalibrationData &dat);
 	struct HIDCloser {
 		void operator()(hid_device *ptr);
 	};
-
+	struct ExpandedPadState {
+		XINPUT_GAMEPAD xinState;
+		StickPoint leftStick;
+		StickPoint rightStick;
+		bool sharePressed;
+	};
+	void zeroPadState(ExpandedPadState &state);
 	// Switch Procon class.
 	// Create, then call openDevice(hid_device_info) to initialize.
 	// Call pollInput() to send input to ViGEm, such as in a main loop.
@@ -34,6 +59,8 @@ namespace Procon {
 		using clock = std::chrono::steady_clock;
 		clock::time_point lastStatus{ clock::now() };
 		uchar port{ 0 };
+		ExpandedPadState padStatus{};
+		CalibrationData calib;
 	public:
 		Controller(uchar port);
 		Controller(Controller &&);
@@ -47,10 +74,12 @@ namespace Procon {
 
 		bool connected() const;
 		uchar getPort() const;
+		const ExpandedPadState& getState() const;
+		void setCalibrationCenter(const StickPoint &left, const StickPoint &right);
 	private:
 
 		void updateStatus();
-
+		
 		using exchangeArray = std::optional<std::array<uchar, exchangeLen>>;
 
 		template<size_t len>
