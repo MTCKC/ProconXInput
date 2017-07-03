@@ -105,12 +105,13 @@ reboots or driver crashes/unexpected closes.
 License
 -------
 
-This code is available under the MIT (Expat) License, see LICENSE.txt
+This code is available under the MIT (Expat) License, see Licenses/LICENSE.txt
 
 XOutput and ScpVBus are part of the ScpToolkit, licensed under GNU GPLv3, see
-LICENSE-Scp.txt
+Licenses/LICENSE-Scp.txt
 
 HidGuardian and HidCerberus.Lib are part of the ViGEm library, licensed under
-the MIT (Expat) License, see LICENSE-ViGEm.txt
+the MIT (Expat) License, see Licenses/LICENSE-ViGEm.txt
 
-hidapi is licensed under a BSD 3-clause license, see LICENSE-hidapi.txt
+hidapi is licensed under a BSD 3-clause license,
+see Licenses/LICENSE-hidapi.txt
