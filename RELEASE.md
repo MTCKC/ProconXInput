@@ -65,12 +65,10 @@ If your games are picking up on the plugged-in Switch Controller that doesn't
 work properly and not the XInput device, you'll need to hide it using
 HidGuardian.
 
-See [HidGuardian]
-(https://github.com/nefarius/ViGEm/tree/master/HidGuardian),
-[HidCerberus.Lib]
-(https://github.com/nefarius/ViGEm/tree/master/HidCerberus.Lib), and
-[HidCerberus.Srv]
-(https://github.com/nefarius/ViGEm/tree/master/HidCerberus.Srv).
+See [HidGuardian](https://github.com/nefarius/ViGEm/tree/master/HidGuardian),
+[HidCerberus.Lib](https://github.com/nefarius/ViGEm/tree/master/HidCerberus.Lib)
+and
+[HidCerberus.Srv](https://github.com/nefarius/ViGEm/tree/master/HidCerberus.Srv)
 
 Simply place HidCerberus.Lib.dll in the same folder as ProconXInput.exe and it
 gains support for HidCerberus and HidGuardian, as long as both HidCerbeus.Srv

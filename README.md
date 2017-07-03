@@ -6,12 +6,12 @@ hidapi, ScpVBus, and XOutput.
 
 Based upon the work of:
 
-- @ShinyQuagsire [here]
-(https://github.com/shinyquagsire23/HID-Joy-Con-Whispering), which was based
-upon the work of dekuNukem and other contributors [here]
-(https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering). 
-- Rumble features (Currently unsupported) from @TheToadKing [here]
-(https://github.com/ToadKing/switch-pro-x).
+- @ShinyQuagsire
+[here](https://github.com/shinyquagsire23/HID-Joy-Con-Whispering), which was
+based upon the work of dekuNukem and other contributors
+[here](https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering). 
+- Rumble features (Currently unsupported) from @TheToadKing
+[here](https://github.com/ToadKing/switch-pro-x).
 
 Read RELEASE.md for release notes.
 
@@ -27,25 +27,23 @@ Build Requirements
 Run Requirements
 ----------------
 
-- [ScpVBus]
-(https://github.com/nefarius/ScpToolkit/tree/master/ScpControl/ScpVBus) driver
-installed. If you have the ScpToolkit installed, this is already installed
+- [ScpVBus](https://github.com/nefarius/ScpToolkit/tree/master/ScpControl/ScpVBus)
+driver installed. If you have the ScpToolkit installed, this is already
+installed
 
-- [XOutput1_1.dll]
-(https://github.com/nefarius/ScpToolkit/tree/master/ScpControl/XOutput) in the
-same directory as the program, dynamically loaded at runtime
+- [XOutput1_1.dll](https://github.com/nefarius/ScpToolkit/tree/master/ScpControl/XOutput)
+in the same directory as the program, dynamically loaded at runtime
 
-- Supports [HidGuardian]
-(https://github.com/nefarius/ViGEm/tree/master/HidGuardian) via
-[HidCerberus.Srv]
-(https://github.com/nefarius/ViGEm/tree/master/HidCerberus.Srv). Define
-NO_CERBERUS to disable support, but it will run fine even without disabling if
-neither are available
+- Supports
+[HidGuardian](https://github.com/nefarius/ViGEm/tree/master/HidGuardian) via
+[HidCerberus.Srv](https://github.com/nefarius/ViGEm/tree/master/HidCerberus.Srv).
+Define NO_CERBERUS to disable support, but it will run fine even without
+disabling if neither are available
 
-- HidGuardian/HidCerberus.Srv support requires [HidCerberus.Lib]
-(https://github.com/nefarius/ViGEm/tree/master/HidCerberus.Lib).dll which is
-dynamically loaded at runtime. This library is optional, and the driver will
-work without it
+- HidGuardian/HidCerberus.Srv support requires
+[HidCerberus.Lib](https://github.com/nefarius/ViGEm/tree/master/HidCerberus.Lib).dll
+which is dynamically loaded at runtime. This library is optional, and the
+driver will work without it
 
 - A Switch Pro Controller attatched via USB
 

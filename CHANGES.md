@@ -1,8 +1,8 @@
 Changelog
 =========
 
-All #n are issue numbers. Tracker is [here]
-(https://github.com/MTCKC/ProconXInput/issues).
+All #n are issue numbers. Tracker is
+[here](https://github.com/MTCKC/ProconXInput/issues).
 
 v0.1.0-alpha2
 -------------
@@ -24,8 +24,8 @@ ScpVBus install/uninstall scripts
 - Fixed #5, The Procon's ABXY buttons now correspond to the X360 buttons that
 are in the same physical location (Procon A == X360 B, Procon X = X360 Y)
 
-- Made all .md documentation less than 80 characters per line. Unfortunately
-this hinders readability where links are.
+- Made all .md documentation less than 80 characters per line, except for some
+unfortunate links which are longer than 80 characters...
 
 - Modified line 232 in hid.c to change device opening to unshared mode,
 possibly fixing #2
