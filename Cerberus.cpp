@@ -38,7 +38,7 @@ namespace Procon {
 	Cerberus& Cerberus::operator=(Cerberus &&) = default;
 
 	void Cerberus::init() {
-		impl->library = LoadLibrary("HidCerberus.Lib.dll");
+		impl->library = LoadLibrary(L"HidCerberus.Lib.dll");
 		if (impl->library == nullptr) {
 			throw CerberusError("Unable to load HidCerberus.Lib.dll");
 		}

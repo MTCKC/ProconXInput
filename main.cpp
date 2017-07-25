@@ -2,6 +2,7 @@
 #include <thread> // this_thread::sleep_for, this_thread::yield
 #include <chrono> // milliseconds
 #include <vector>
+#include <array>
 
 #ifndef NOMINMAX
 #define NOMINMAX

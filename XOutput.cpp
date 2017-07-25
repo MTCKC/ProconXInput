@@ -45,7 +45,7 @@ namespace {
 		void init() {
 			if (hasInit) return;
 			hasInit = true;
-			dllHandle = LoadLibrary("XOutput1_1.dll");
+			dllHandle = LoadLibrary(L"XOutput1_1.dll");
 			if (dllHandle == nullptr) {
 				throw XOutput::XOutputError("Unable to load XOutput1_1.dll");
 			}
