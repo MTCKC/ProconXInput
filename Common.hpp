@@ -1,9 +1,5 @@
 #pragma once
 
-#include <stdexcept>
-#include <array>
-#include <string>
-
 namespace Procon {
 
 	using uchar = unsigned char;
@@ -46,40 +42,6 @@ namespace Procon {
 		RStick,
 		Home,
 		Share,
-	};
-
-	const std::array<Button, 8> JoyconLBitmap =
-	{
-		Button::DPadDown,
-		Button::DPadUp,
-		Button::DPadRight,
-		Button::DPadLeft,
-		Button::None,
-		Button::None,
-		Button::L,
-		Button::LZ
-	};
-
-	const std::array<Button, 8> JoyconRBitmap = {
-		Button::Y,
-		Button::X,
-		Button::B,
-		Button::A,
-		Button::None,
-		Button::None,
-		Button::R,
-		Button::RZ
-	};
-
-	const std::array<Button, 8> JoyconMidBitmap = {
-		Button::Minus,
-		Button::Plus,
-		Button::RStick,
-		Button::LStick,
-		Button::Home,
-		Button::Share,
-		Button::None,
-		Button::None
 	};
 
 	enum class ButtonSource {
