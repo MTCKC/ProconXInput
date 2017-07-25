@@ -22,6 +22,7 @@ namespace Procon {
 		VerType typeSubver;
 	};
 	constexpr char ProgramName[] = "ProconXInput";
+	constexpr char InstallerName[] = "ProconXInput Installer";
 
 #ifdef _DEBUG
 	constexpr char BuildType[] = "Debug Build";
@@ -38,6 +39,7 @@ namespace Procon {
 #endif
 
 	constexpr Version ProgramVersion{ 0, 1, 0, ReleaseType::Alpha, 3 };
+	constexpr Version InstallerVersion{ 0, 1, 0, ReleaseType::Alpha, 1 };
 	std::ostream& operator<<(std::ostream& o, const ReleaseType& vt);
 	std::ostream& operator<<(std::ostream& o, const Version& v);
 };

@@ -306,6 +306,76 @@ namespace {
 		updateCalibrationRangeStick(state.rightStick, cal.right);
 	}
 
+#ifdef _DEBUG
+	using std::string;
+
+	const string buttonA{ "A" };
+	const string buttonB{ "B" };
+	const string buttonX{ "X" };
+	const string buttonY{ "Y" };
+	const string buttonLStick{ "Left Stick" };
+	const string buttonRStick{ "Right Stick" };
+	const string buttonL{ "L" };
+	const string buttonR{ "R" };
+	const string buttonLZ{ "LZ" };
+	const string buttonRZ{ "RZ" };
+	const string buttonHome{ "Home" };
+	const string buttonShare{ "Share" };
+	const string buttonPlus{ "Plus" };
+	const string buttonMinus{ "Minus" };
+	const string buttonDPUp{ "DPad Up" };
+	const string buttonDPLeft{ "DPad Left" };
+	const string buttonDPRight{ "DPad Right" };
+	const string buttonDPDown{ "DPad Down" };
+	const string buttonNone{ "None" };
+	const string buttonUnknown{ "Unknown" };
+
+	const std::string& buttonToString(Button b) {
+		switch (b) {
+		case Button::A:
+			return buttonA;
+		case Button::B:
+			return buttonB;
+		case Button::X:
+			return buttonX;
+		case Button::Y:
+			return buttonY;
+		case Button::LStick:
+			return buttonLStick;
+		case Button::RStick:
+			return buttonRStick;
+		case Button::L:
+			return buttonL;
+		case Button::LZ:
+			return buttonLZ;
+		case Button::R:
+			return buttonR;
+		case Button::RZ:
+			return buttonRZ;
+		case Button::Home:
+			return buttonHome;
+		case Button::Share:
+			return buttonShare;
+		case Button::Plus:
+			return buttonPlus;
+		case Button::Minus:
+			return buttonMinus;
+		case Button::DPadDown:
+			return buttonDPDown;
+		case Button::DPadUp:
+			return buttonDPUp;
+		case Button::DPadLeft:
+			return buttonDPLeft;
+		case Button::DPadRight:
+			return buttonDPRight;
+		case Button::None:
+			return buttonNone;
+		default:
+			return buttonUnknown;
+		}
+	}
+#endif //#ifdef _DEBUG
+
 	void mapInputToState(const InputPacket &p, CalibrationData &cal, ExpandedPadState &state) {
 		state.leftStick.x = ((p.sticks[1] & 0x0F) << 4) | ((p.sticks[0] & 0xF0) >> 4);
 		state.leftStick.y = p.sticks[2];
@@ -332,7 +402,11 @@ namespace {
 			}
 		}
 	}
-};
+
+	unsigned char operator ""_uc(unsigned long long t) {
+		return static_cast<unsigned char>(t);
+	}
+}; //namespace
 
 namespace Procon {
 
@@ -418,74 +492,3 @@ namespace Procon {
 	ControllerException::ControllerException(const std::string& what) : runtime_error(what) {}
 	ControllerException::ControllerException(const char* what) : runtime_error(what) {}
 };
-namespace {
-	using std::string;
-
-	const string buttonA{ "A" };
-	const string buttonB{ "B" };
-	const string buttonX{ "X" };
-	const string buttonY{ "Y" };
-	const string buttonLStick{ "Left Stick" };
-	const string buttonRStick{ "Right Stick" };
-	const string buttonL{ "L" };
-	const string buttonR{ "R" };
-	const string buttonLZ{ "LZ" };
-	const string buttonRZ{ "RZ" };
-	const string buttonHome{ "Home" };
-	const string buttonShare{ "Share" };
-	const string buttonPlus{ "Plus" };
-	const string buttonMinus{ "Minus" };
-	const string buttonDPUp{ "DPad Up" };
-	const string buttonDPLeft{ "DPad Left" };
-	const string buttonDPRight{ "DPad Right" };
-	const string buttonDPDown{ "DPad Down" };
-	const string buttonNone{ "None" };
-	const string buttonUnknown{ "Unknown" };
-};
-	const std::string& Procon::buttonToString(Button b) {
-		switch (b) {
-		case Button::A:
-			return buttonA;
-		case Button::B:
-			return buttonB;
-		case Button::X:
-			return buttonX;
-		case Button::Y:
-			return buttonY;
-		case Button::LStick:
-			return buttonLStick;
-		case Button::RStick:
-			return buttonRStick;
-		case Button::L:
-			return buttonL;
-		case Button::LZ:
-			return buttonLZ;
-		case Button::R:
-			return buttonR;
-		case Button::RZ:
-			return buttonRZ;
-		case Button::Home:
-			return buttonHome;
-		case Button::Share:
-			return buttonShare;
-		case Button::Plus:
-			return buttonPlus;
-		case Button::Minus:
-			return buttonMinus;
-		case Button::DPadDown:
-			return buttonDPDown;
-		case Button::DPadUp:
-			return buttonDPUp;
-		case Button::DPadLeft:
-			return buttonDPLeft;
-		case Button::DPadRight:
-			return buttonDPRight;
-		case Button::None:
-			return buttonNone;
-		default:
-			return buttonUnknown;
-		}
-	}
-	unsigned char Procon::operator ""_uc(unsigned long long t) {
-		return static_cast<unsigned char>(t);
-	}

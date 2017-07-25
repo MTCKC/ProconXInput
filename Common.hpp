@@ -94,8 +94,4 @@ namespace Procon {
 	constexpr int JoyconGrip_ID = 0x200e;
 	constexpr int NintendoID = 0x057E;
 
-	const std::string& buttonToString(Button b); // In Controller.cpp
-
-	unsigned char operator ""_uc(unsigned long long t); // In Controller.cpp
-
 };
