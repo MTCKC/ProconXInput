@@ -127,6 +127,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Cerberus.cpp" />
+    <ClCompile Include="Config.cpp" />
     <ClCompile Include="Controller.cpp" />
     <ClCompile Include="hid.c" />
     <ClCompile Include="main.cpp" />
@@ -136,6 +137,7 @@
   <ItemGroup>
     <ClInclude Include="Cerberus.hpp" />
     <ClInclude Include="Common.hpp" />
+    <ClInclude Include="Config.hpp" />
     <ClInclude Include="Controller.hpp" />
     <ClInclude Include="hidapi.h" />
     <ClInclude Include="Version.hpp" />

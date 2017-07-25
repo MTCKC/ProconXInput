@@ -11,6 +11,7 @@
 
 #include "hidapi.h"
 #include "XOutput.hpp"
+#include "Config.hpp"
 
 using namespace XOutput;
 
@@ -227,6 +228,45 @@ namespace {
 			return 0x0000;
 		}
 	}
+	constexpr unsigned short buttonToReportBitsOld(Button b) {
+		switch (b) {
+		case Button::DPadUp:
+			return 0x0001;
+		case Button::DPadDown:
+			return 0x0002;
+		case Button::DPadLeft:
+			return 0x0004;
+		case Button::DPadRight:
+			return 0x0008;
+		case Button::Plus:
+			return 0x0010;
+		case Button::Minus:
+			return 0x0020;
+		case Button::LStick:
+			return 0x0040;
+		case Button::RStick:
+			return 0x0080;
+		case Button::L:
+			return 0x0100;
+		case Button::R:
+			return 0x0200;
+		case Button::Home:
+			return 0x0400; // Undocumented
+
+		case Button::A:
+			return 0x1000;
+		case Button::B:
+			return 0x2000;
+		case Button::X:
+			return 0x4000;
+		case Button::Y:
+			return 0x8000;
+		default:
+			return 0x0000;
+		}
+	}
+
+	const std::string buttonConfigName{ "bMatchButtonLabels" };
 
 	void mapButtonToState(Button b, ExpandedPadState &state) {
 		switch (b) {
@@ -238,8 +278,14 @@ namespace {
 			return;
 		case Button::Share:
 			state.sharePressed = true;
+			return;
 		default:
-			state.xinState.wButtons |= buttonToReportBits(b);
+			if (Config::get<bool>(buttonConfigName).value_or(false)) {
+				state.xinState.wButtons |= buttonToReportBitsOld(b);
+			}
+			else {
+				state.xinState.wButtons |= buttonToReportBits(b);
+			}
 			return;
 		}
 	}
@@ -443,4 +489,3 @@ namespace {
 	unsigned char Procon::operator ""_uc(unsigned long long t) {
 		return static_cast<unsigned char>(t);
 	}
-

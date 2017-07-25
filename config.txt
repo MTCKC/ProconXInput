@@ -1,0 +1,4 @@
+// bMatchButtonLabels - How the Procon ABXY maps to XInput ABXY
+// 0 - Procon A = XInput B, Procon X = XInput Y (Physical locations are identical)
+// 1 - Procon A = XInput A, Procon X = XInput X (Button labels are identical)
+bMatchButtonLabels = 0

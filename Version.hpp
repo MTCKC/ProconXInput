@@ -37,7 +37,7 @@ namespace Procon {
 	static_assert(false, "Platform unable to be determined.");
 #endif
 
-	constexpr Version ProgramVersion{ 0, 1, 0, ReleaseType::Alpha, 2 };
+	constexpr Version ProgramVersion{ 0, 1, 0, ReleaseType::Alpha, 3 };
 	std::ostream& operator<<(std::ostream& o, const ReleaseType& vt);
 	std::ostream& operator<<(std::ostream& o, const Version& v);
 };

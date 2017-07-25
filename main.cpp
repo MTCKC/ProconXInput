@@ -14,6 +14,7 @@
 #include "Controller.hpp"
 #include "Cerberus.hpp"
 #include "Version.hpp"
+#include "Config.hpp"
 
 namespace {
 	bool hasBroke{ false };
@@ -61,6 +62,14 @@ int main(int, char*[]) {
 	auto pause = make_scoped(::pause);
 
 	cout << ProgramName << ' ' << ProgramVersion << ' ' << Platform << ' ' << BuildType << "\n\n";
+
+	try {
+		Config::readConfigFile("config.txt");
+	}
+	catch (const ConfigError &e) {
+		cout << "Error reading config file: " << e.what() << '\n';
+		return -1;
+	}
 
 	try {
 		XOutput::XOutputInitialize();
