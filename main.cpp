@@ -129,12 +129,6 @@ int main(int, char*[]) {
 	}
 
 	cout << "\nConnected to " << static_cast<int>(port) << " controller(s). Beginning xInput emulation.\n\n";
-	
-	cout << "Doing calibration, stick min/maxes will be updated automatically.\n";
-	cout << "Move the sticks some, then let them reset to neutral.\n";
-	cout << "Press the Share button to set stick center. This only works once per controller currently!\n";
-	cout << "XInput may be laggier before stick center for all controllers is set!\n\n";
-	
 	cout << "Press CTRL+C to exit.\n\n";
 	::setBreakHandler();
 
@@ -144,26 +138,10 @@ int main(int, char*[]) {
 	try {
 		// Testing to set centers, additional comparisons = slower so make it a separate loop
 		size_t countCentered{ 0 };
-		while (!::hasBroke && countCentered < port) {
-			for (size_t i = 0; i < port; ++i) {
-				cs[i].pollInput();
-				if (!hasCentered[i]) {
-					const Procon::ExpandedPadState &state = cs[i].getState();
-					if (state.sharePressed) {
-						cs[i].setCalibrationCenter(state.leftStick, state.rightStick);
-						hasCentered[i] = true;
-						++countCentered;
-						cout << "Set stick centers for controller LED " << i + 1 << '\n';
-					}
-				}
-			}
-			yield();
-		}
-		cout << "\nAll controller stick centers set, entering fast input loop. Enjoy your games!\n";
-		// Centers set, main input loop
 		while(!::hasBroke){
 			for (size_t i = 0; i < port; ++i) {
 				cs[i].pollInput();
+        const Procon::ExpandedPadState &state = cs[i].getState();
 			}
 			yield(); // sleep_for causes big lag and not yielding eats way more processor
 		}
