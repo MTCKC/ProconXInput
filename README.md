@@ -103,8 +103,8 @@ reboots or driver crashes/unexpected closes.
 License
 -------
 
-All code except for XOutput is dual licensed under the the MIT (Expat) License,
-see Licenses/LICENSE.txt, and the GPLv3, see Licenses/LICENSE-GPL3.txt
+All code except for XOutput and hidapi is dual licensed under the the MIT (Expat)
+License, see Licenses/LICENSE.txt, and the GPLv3, see Licenses/LICENSE-GPL3.txt
 
 XOutput and ScpVBus are part of the ScpToolkit, licensed under GNU GPLv3, see
 Licenses/LICENSE-Scp.txt
