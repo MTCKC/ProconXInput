@@ -7,6 +7,7 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+#define _WINSOCKAPI_
 #include <Windows.h>
 #include <conio.h> // _kbhit, _getch_nolock
 #include "XOutput.hpp"
@@ -16,6 +17,7 @@
 #include "Cerberus.hpp"
 #include "Version.hpp"
 #include "Config.hpp"
+#include "UdpServer.h"
 
 namespace {
 	bool hasBroke{ false };
@@ -132,6 +134,8 @@ int main(int, char*[]) {
 	cout << "Press CTRL+C to exit.\n\n";
 	::setBreakHandler();
 
+  UdpServer udpServer;
+
 	std::array<bool, 4> hasCentered;
 	hasCentered.fill(false);
 
@@ -142,7 +146,9 @@ int main(int, char*[]) {
 			for (size_t i = 0; i < port; ++i) {
 				cs[i].pollInput();
         const Procon::ExpandedPadState &state = cs[i].getState();
+        udpServer.newReportIncoming(state);
 			}
+      udpServer.receive();
 			yield(); // sleep_for causes big lag and not yielding eats way more processor
 		}
 	}
