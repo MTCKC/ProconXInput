@@ -100,7 +100,7 @@ int main(int, char*[]) {
 		cout << "Continuing, may not find the controller if it's hidden by HidGuardian.\n";
 	}
 #endif
-	
+
 	std::vector<Controller> cs;
 	uchar port{ 0 };
 	{
@@ -134,7 +134,7 @@ int main(int, char*[]) {
 	cout << "Press CTRL+C to exit.\n\n";
 	::setBreakHandler();
 
-  UdpServer udpServer;
+	UdpServer udpServer;
 
 	std::array<bool, 4> hasCentered;
 	hasCentered.fill(false);
@@ -142,13 +142,13 @@ int main(int, char*[]) {
 	try {
 		// Testing to set centers, additional comparisons = slower so make it a separate loop
 		size_t countCentered{ 0 };
-		while(!::hasBroke){
+		while (!::hasBroke) {
 			for (size_t i = 0; i < port; ++i) {
 				cs[i].pollInput();
-        const Procon::ExpandedPadState &state = cs[i].getState();
-        udpServer.newReportIncoming(state);
+				const Procon::ExpandedPadState &state = cs[i].getState();
+				udpServer.newReportIncoming(state);
 			}
-      udpServer.receive();
+			udpServer.receive();
 			yield(); // sleep_for causes big lag and not yielding eats way more processor
 		}
 	}
