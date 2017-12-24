@@ -87,6 +87,7 @@ namespace {
 	using std::vector;
 	using std::tuple;
 	using std::array;
+	using std::map;
 
 	using namespace Procon;
 
@@ -137,11 +138,14 @@ namespace {
 		}
 	}
 
-	void pullButtonsFromByte(uchar c, ButtonSource src, vector<tuple<Button, bool>> &out) {
+	void pullButtonsFromByte(uchar c, ButtonSource src, map<Button, bool> &out) {
 		const array<Button, 8>& map = getButtonMap(src);
 		for (uchar i{ 0 }; i < 8; ++i) {
-			if (map[i] == Button::None) continue;
-			out.push_back(std::make_tuple(map[i], (c & (1 << i)) != 0));
+			if (map[i] == Button::None)
+			{
+				continue;
+			}
+			out[map[i]] = (c & (1 << i)) != 0;
 		}
 	}
 
@@ -341,12 +345,12 @@ namespace {
 		pullButtonsFromByte(p.rightButtons, ButtonSource::Right, state.buttons);
 		pullButtonsFromByte(p.middleButtons, ButtonSource::Middle, state.buttons);
 
-		for (auto pair : state.buttons) {
-			if (std::get<1>(pair)) {
+		for (auto& pair : state.buttons) {
+			if (pair.second) {
 #ifdef _DEBUG
 				std::cout << buttonToString(std::get<0>(pair)) << ' ';
 #endif
-				mapButtonToState(std::get<0>(pair), state);
+				mapButtonToState(pair.first, state);
 			}
 		}
 	}
@@ -375,10 +379,11 @@ namespace Procon {
 		if (ptr != nullptr)
 			hid_close(ptr);
 	}
+
 	void zeroPadState(ExpandedPadState &state) {
 		for (auto& button : state.buttons)
 		{
-			std::get<1>(button) = false;
+			button.second = false;
 		}
 		state.xinState = { 0 };
 		state.leftStick = { 0 };
@@ -388,7 +393,16 @@ namespace Procon {
 		state.sharePressed = false;
 	}
 
-	Controller::Controller(uchar port) :device(nullptr), port(port) {
+	Controller::Controller(uchar port)
+		: device(nullptr)
+		, port(port)
+	{
+		// Create all entries for every button
+		for (int i = 0; i < static_cast<int>(Button::MaxButtons); i++)
+		{
+			padStatus.buttons[static_cast<Button>(i)] = false;
+		}
+
 		SetDefaultCalibration(calib);
 	}
 

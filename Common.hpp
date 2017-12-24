@@ -42,6 +42,7 @@ namespace Procon {
 		RStick,
 		Home,
 		Share,
+		MaxButtons
 	};
 
 	enum class ButtonSource {

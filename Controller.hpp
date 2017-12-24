@@ -7,6 +7,7 @@
 #include <thread>
 #include <vector>
 #include <array>
+#include <map>
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -69,7 +70,7 @@ namespace Procon {
 
 	struct ExpandedPadState {
 		XINPUT_GAMEPAD xinState;
-		std::vector<std::tuple<Button, bool>> buttons;
+		std::map<Button, bool> buttons;
 		StickPoint leftStick;
 		StickPoint rightStick;
 		AccelData accel;
