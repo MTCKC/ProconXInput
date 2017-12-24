@@ -5,6 +5,9 @@
 #include <stdexcept>
 #include <chrono>
 #include <thread>
+#include <vector>
+#include <array>
+#include <map>
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -18,35 +21,66 @@
 namespace Procon {
 
 	constexpr size_t exchangeLen{ 0x400 };
-	struct AxisRange {
-		uchar min;
-		uchar max;
+
+	struct AccelData {
+		float x;
+		float y;
+		float z;
 	};
+
+	struct GyroData {
+		float x;
+		float y;
+		float z;
+	};
+
+	struct AxisRange {
+		uint16_t min;
+		uint16_t max;
+	};
+
 	struct StickRange {
 		AxisRange x;
 		AxisRange y;
 	};
+
 	struct StickPoint {
-		uchar x;
-		uchar y;
+		uint16_t x;
+		uint16_t y;
 	};
+
+	struct SensorCalibration {
+		std::array<float, 3> accelCoeff;
+		std::array<float, 3> gyroCoeff;
+	};
+
 	struct CalibrationData {
 		StickRange left;
 		StickRange right;
 		StickPoint leftCenter;
 		StickPoint rightCenter;
+		SensorCalibration motionSensor;
 	};
+
 	void SetDefaultCalibration(CalibrationData &dat);
+
 	struct HIDCloser {
 		void operator()(hid_device *ptr);
 	};
+
 	struct ExpandedPadState {
 		XINPUT_GAMEPAD xinState;
+		std::map<Button, bool> buttons;
 		StickPoint leftStick;
 		StickPoint rightStick;
+		AccelData accel;
+		GyroData gyro;
+		std::chrono::steady_clock::time_point lastStatus;
 		bool sharePressed;
 	};
+
 	void zeroPadState(ExpandedPadState &state);
+
 	// Switch Procon class.
 	// Create, then call openDevice(hid_device_info) to initialize.
 	// Call pollInput() to send input to ViGEm, such as in a main loop.
@@ -57,7 +91,7 @@ namespace Procon {
 		std::unique_ptr<hid_device, HIDCloser> device;
 		uchar rumbleCounter{ 0 };
 		using clock = std::chrono::steady_clock;
-		clock::time_point lastStatus{ clock::now() };
+		clock::time_point lastStatus;
 		uchar port{ 0 };
 		ExpandedPadState padStatus{};
 		CalibrationData calib;
@@ -75,12 +109,15 @@ namespace Procon {
 		bool connected() const;
 		uchar getPort() const;
 		const ExpandedPadState& getState() const;
-		void setCalibrationCenter(const StickPoint &left, const StickPoint &right);
 	private:
 
 		void updateStatus();
-		
+		void readAnalogStickCalibrationData();
+		void readMotionSensorCalibrationData();
+
 		using exchangeArray = std::optional<std::array<uchar, exchangeLen>>;
+
+		exchangeArray receive(int timeout);
 
 		template<size_t len>
 		exchangeArray exchange(std::array<uchar, len> const &data) {
@@ -113,8 +150,9 @@ namespace Procon {
 		template<size_t len>
 		exchangeArray sendSubcommand(uchar command, uchar subcommand, std::array<uchar, len> const& data) {
 			std::array<uchar, 10 + len> buf
-			{ 
+			{
 				static_cast<uchar>(rumbleCounter++ & 0xF),
+				// For command 0x01 this is the rumble data
 				0x00_uc,
 				0x01_uc,
 				0x40_uc,
@@ -123,6 +161,8 @@ namespace Procon {
 				0x01_uc,
 				0x40_uc,
 				0x40_uc,
+				// Rumble data end
+				// Now comes the additional subcommand if using 0x01 instead of 0x10 for rumble data
 				subcommand
 			};
 			if (len > 0) {
@@ -131,9 +171,8 @@ namespace Procon {
 			return sendCommand(command, buf);
 		}
 
-
+		exchangeArray getSpiData(uint32_t offset, const uint8_t readLen);
 		exchangeArray sendRumble(uchar largeMotor, uchar smallMotor);
-
 	};
 
 	class ControllerException : public std::runtime_error {

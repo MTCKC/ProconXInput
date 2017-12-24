@@ -7,6 +7,7 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+#define _WINSOCKAPI_
 #include <Windows.h>
 #include <conio.h> // _kbhit, _getch_nolock
 #include "XOutput.hpp"
@@ -16,6 +17,7 @@
 #include "Cerberus.hpp"
 #include "Version.hpp"
 #include "Config.hpp"
+#include "UdpServer.h"
 
 namespace {
 	bool hasBroke{ false };
@@ -98,7 +100,7 @@ int main(int, char*[]) {
 		cout << "Continuing, may not find the controller if it's hidden by HidGuardian.\n";
 	}
 #endif
-	
+
 	std::vector<Controller> cs;
 	uchar port{ 0 };
 	{
@@ -129,14 +131,10 @@ int main(int, char*[]) {
 	}
 
 	cout << "\nConnected to " << static_cast<int>(port) << " controller(s). Beginning xInput emulation.\n\n";
-	
-	cout << "Doing calibration, stick min/maxes will be updated automatically.\n";
-	cout << "Move the sticks some, then let them reset to neutral.\n";
-	cout << "Press the Share button to set stick center. This only works once per controller currently!\n";
-	cout << "XInput may be laggier before stick center for all controllers is set!\n\n";
-	
 	cout << "Press CTRL+C to exit.\n\n";
 	::setBreakHandler();
+
+	UdpServer udpServer;
 
 	std::array<bool, 4> hasCentered;
 	hasCentered.fill(false);
@@ -144,27 +142,13 @@ int main(int, char*[]) {
 	try {
 		// Testing to set centers, additional comparisons = slower so make it a separate loop
 		size_t countCentered{ 0 };
-		while (!::hasBroke && countCentered < port) {
+		while (!::hasBroke) {
 			for (size_t i = 0; i < port; ++i) {
 				cs[i].pollInput();
-				if (!hasCentered[i]) {
-					const Procon::ExpandedPadState &state = cs[i].getState();
-					if (state.sharePressed) {
-						cs[i].setCalibrationCenter(state.leftStick, state.rightStick);
-						hasCentered[i] = true;
-						++countCentered;
-						cout << "Set stick centers for controller LED " << i + 1 << '\n';
-					}
-				}
+				const Procon::ExpandedPadState &state = cs[i].getState();
+				udpServer.newReportIncoming(state);
 			}
-			yield();
-		}
-		cout << "\nAll controller stick centers set, entering fast input loop. Enjoy your games!\n";
-		// Centers set, main input loop
-		while(!::hasBroke){
-			for (size_t i = 0; i < port; ++i) {
-				cs[i].pollInput();
-			}
+			udpServer.receive();
 			yield(); // sleep_for causes big lag and not yielding eats way more processor
 		}
 	}
